@@ -8,7 +8,7 @@ const userRoutes = require('./routes/userRoutes');
 
 const app = express();
 
-dotenv.config({ path: './.env' });
+dotenv.config({ path: './config.env' });
 const dbURI = process.env.DATABASE.replace(
   '<PASSWORD>',
   process.env.DATABASE_PASSWORD

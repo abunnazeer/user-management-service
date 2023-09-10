@@ -5,6 +5,8 @@ const {
   getProfile,
   updateProfile,
   forgotPassword,
+  resetPassword,
+  changePassword,
   setupTwoFactor,
   verifyTwoFactor,
   refreshToken,
@@ -21,7 +23,12 @@ const router = express.Router();
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 
-router.post('/forgotPassword', forgotPassword);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password/:resetToken', resetPassword);
+
+router.post('/change-password', authenticateJWT, changePassword);
+
+
 // Use middleware for the profile routes
 // router.post('/setupTwoFactor', authenticateJWT, setupTwoFactor);
 // router.post('/verifyTwoFactor', authenticateJWT, verifyTwoFactor);

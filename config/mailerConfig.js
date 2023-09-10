@@ -1,12 +1,17 @@
 const nodemailer = require('nodemailer');
 
 const transport = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
+  host: 'mail.xzedge.ng',
+  port: 465,
+  secure: true,
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: 'xhms@xzedge.ng',
+    pass: 'ShadowBlade@1235',
+  },
+  tls: {
+    rejectUnauthorized: false,
   },
 });
 
 module.exports = transport;
+

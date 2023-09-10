@@ -16,6 +16,11 @@ const userSchema = new mongoose.Schema({
     enum: ['patient', 'doctor', 'admin'],
     required: true,
   },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+  },
   profile: {
     firstName: String,
     lastName: String,
@@ -42,12 +47,24 @@ const userSchema = new mongoose.Schema({
     default: false,
   },
   emailVerificationToken: String,
+  passwordResetToken: String,
+  passwordResetExpires: Date,
 });
 
+// Method to change the user's password
+userSchema.methods.changePassword = async function (oldPassword, newPassword) {
+  if (!(await bcrypt.compare(oldPassword, this.password))) {
+    throw new Error('Your old password is incorrect.');
+  }
 
+  this.password = newPassword;
+  await this.save();
+};
+
+// Pre-save hook to hash the password if it's modified
 userSchema.pre('save', async function (next) {
   if (this.isModified('password')) {
-    this.password = await bcrypt.hash(this.password, 12);
+    this.password = await bcrypt.hash(this.password, 10);
   }
   next();
 });
