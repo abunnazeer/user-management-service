@@ -7,6 +7,8 @@ const {
   forgotPassword,
   resetPassword,
   changePassword,
+  createProfile,
+  deleteProfile,
   setupTwoFactor,
   verifyTwoFactor,
   refreshToken,
@@ -28,23 +30,28 @@ router.post('/reset-password/:resetToken', resetPassword);
 
 router.post('/change-password', authenticateJWT, changePassword);
 
-
 // Use middleware for the profile routes
 // router.post('/setupTwoFactor', authenticateJWT, setupTwoFactor);
 // router.post('/verifyTwoFactor', authenticateJWT, verifyTwoFactor);
-router.post('/refreshToken', refreshToken);
-router.get(
-  '/profile',
-  authenticateJWT,
-  authorizeRole(['patient', 'doctor', 'admin']),
-  getProfile
-);
-router.put(
-  '/profile',
-  authenticateJWT,
-  authorizeRole(['patient', 'doctor', 'admin']),
-  updateProfile
-);
+// router.post('/refreshToken', refreshToken);
+// router.get(
+//   '/profile',
+//   authenticateJWT,
+//   authorizeRole(['patient', 'doctor', 'admin']),
+//   getProfile
+// );
+// router.put(
+//   '/profile',
+//   authenticateJWT,
+//   authorizeRole(['patient', 'doctor', 'admin']),
+//   updateProfile
+// );
+
+router.get('/profile', authenticateJWT, getProfile);
+router.post('/profile', authenticateJWT, createProfile);
+router.put('/profile', authenticateJWT, updateProfile);
+router.delete('/profile', authenticateJWT, deleteProfile);
+
 
 // Example admin-only route
 router.get(

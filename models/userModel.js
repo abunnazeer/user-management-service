@@ -21,11 +21,14 @@ const userSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+
   profile: {
+    aboutMe: String,
+    specialization: String, // For doctors
     firstName: String,
     lastName: String,
-    email: String,
     phone: String,
+    profilePicture: String,
   },
   twoFactorSecret: String,
   isTwoFactorEnabled: {

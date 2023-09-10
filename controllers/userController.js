@@ -404,7 +404,7 @@ exports.verifyTwoFactor = async (req, res) => {
   }
 };
 
-// --- Get User Profile ---
+// Read User Profile
 exports.getProfile = async (req, res) => {
   const user = await User.findById(req.user.id).select('-password');
   if (!user) {
@@ -413,7 +413,7 @@ exports.getProfile = async (req, res) => {
   res.status(200).json({ profile: user.profile });
 };
 
-// --- Update User Profile ---
+// Update User Profile
 exports.updateProfile = async (req, res) => {
   const updates = req.body;
   const user = await User.findByIdAndUpdate(
@@ -421,10 +421,50 @@ exports.updateProfile = async (req, res) => {
     { $set: { profile: updates } },
     { new: true }
   ).select('-password');
-  logUserActivity(req.user.id, 'User updated profile');
-  logAuditTrail(req.user.id, 'Updated Profile', { updatedFields: req.body });
+
   if (!user) {
     return res.status(404).json({ message: 'User not found' });
   }
   res.status(200).json({ message: 'Profile updated', profile: user.profile });
+};
+
+// Delete User Profile
+exports.deleteProfile = async (req, res) => {
+  const user = await User.findByIdAndDelete(req.user.id);
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+  res.status(200).json({ message: 'Profile deleted' });
+};
+
+// Create Profile (Usually this would be done during the registration process)
+exports.createProfile = async (req, res) => {
+  const {
+    firstName,
+    lastName,
+    phone,
+    aboutMe,
+    specialization,
+    profilePicture,
+  } = req.body;
+
+  const profile = {
+    firstName,
+    lastName,
+    phone,
+    aboutMe,
+    specialization,
+    profilePicture,
+  };
+
+  const user = await User.findByIdAndUpdate(
+    req.user.id,
+    { $set: { profile: profile } },
+    { new: true }
+  ).select('-password');
+
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+  res.status(200).json({ message: 'Profile created', profile: user.profile });
 };
