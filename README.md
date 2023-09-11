@@ -3,7 +3,7 @@
 
 ## Overview
 
-The User Management Service is a microservice responsible for all user-related functionalities in the healthcare management system. This includes user registration, authentication, profile management, and user roles and permissions.
+The User Management Service is a microservice responsible for all user-related functionalities in the Nodejs Application. This includes user registration, authentication, profile management, and user roles and permissions.
 
 ## Table of Contents
 
@@ -32,7 +32,7 @@ The User Management Service is a microservice responsible for all user-related f
     npm install
     ```
 
-## Environment Variables
+## Environment-Variables
 
 Create a `.env` file in the root directory and add the following:
 
@@ -43,7 +43,7 @@ DATABASE_URL=<your_database_url>
 SECRET_KEY=<your_secret_key>
 ```
 
-## Running the Service
+## Running-the-Service
 
 To start the service, run:
 
