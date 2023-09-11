@@ -146,7 +146,7 @@ const logAuditTrail = async (userId, action, changes = {}) => {
   await auditTrail.save();
 };
 
-// --- User Login ---
+// // --- User Login ---
 exports.loginUser = async (req, res) => {
   const { identifier, password } = req.body; // Changed to 'identifier'
 
@@ -203,7 +203,14 @@ exports.loginUser = async (req, res) => {
   user.failedLoginAttempts = 0;
   user.accountLockUntil = undefined;
   await user.save();
-
+  if (user.isTwoFactorEnabled) {
+    const tempToken = jwt.sign(
+      { id: user._id, role: user.role, twoFactor: true },
+      process.env.JWT_SECRET,
+      { expiresIn: '10m' }
+    );
+    return res.status(200).json({ message: '2FA required', tempToken });
+  }
   // Create JWT token
   const token = jwt.sign(
     { id: user._id, role: user.role },
@@ -236,6 +243,8 @@ exports.loginUser = async (req, res) => {
 
   res.status(200).json({ message: 'Logged in', accessToken, refreshToken });
 };
+
+
 
 // --- Refresh JWT Token ---
 exports.refreshToken = async (req, res) => {
@@ -367,6 +376,9 @@ exports.changePassword = async (req, res) => {
   }
 };
 
+
+
+
 // --- Setup Two-Factor Authentication ---
 exports.setupTwoFactor = async (req, res) => {
   const user = await User.findById(req.user.id);
@@ -378,31 +390,119 @@ exports.setupTwoFactor = async (req, res) => {
   QRCode.toDataURL(secret.otpauth_url, (err, dataURL) => {
     user.twoFactorSecret = secret.base32;
     user.save();
-    res.json({ message: 'Two-factor auth enabled', dataURL });
+    user.twoFactorSecret = secret.base32;
+    const twoFactorSecretCode = user.twoFactorSecret;
+    res.json({
+      message: 'Two-factor auth enabled',
+      twoFactorSecretCode,
+      dataURL,
+    });
   });
 };
-// --- Verify Two-Factor Token ---
+
+//--- Veriying then Enable isTwoFactorEnabled to true---
 exports.verifyTwoFactor = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // The token provided by the user from the 2FA device
+    const userToken = req.body.userToken;
+
+    // The secret stored when the QR code was generated
+    const secret = user.twoFactorSecret;
+
+    // Verify the token
+    const verified = speakeasy.totp.verify({
+      secret: secret,
+      encoding: 'base32',
+      token: userToken,
+    });
+
+    if (verified) {
+      // If verified, enable 2FA by setting the flag and storing the secret
+      user.isTwoFactorEnabled = true;
+      await user.save();
+
+      res.json({ message: 'Two-factor auth verified and enabled' });
+    } else {
+      res.status(400).json({ message: 'Invalid 2FA token' });
+    }
+  } catch (error) {
+    console.log('Error verifying 2FA:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+// --- Verify Two-Factor Token During Login ---
+exports.verifyTwoFactorLogin = async (req, res) => {
+  const { tempToken, twoFactorCode } = req.body;
+
+  let decoded;
+  try {
+    decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+  } catch (err) {
+    return res
+      .status(403)
+      .json({ message: 'Invalid or expired temporary token' });
+  }
+
+  if (!decoded.twoFactor) {
+    return res
+      .status(403)
+      .json({ message: 'Invalid token for 2FA verification' });
+  }
+
+  const user = await User.findById(decoded.id);
+  if (!user) {
+    return res.status(404).json({ message: 'User not found' });
+  }
+
+  const verified = speakeasy.totp.verify({
+    secret: user.twoFactorSecret,
+    encoding: 'base32',
+    token: twoFactorCode,
+  });
+
+  if (!verified) {
+    return res.status(400).json({ message: 'Invalid two-factor code' });
+  }
+
+  // Generate the final JWT and refresh token
+  const token = jwt.sign(
+    { id: user._id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: '1h' }
+  );
+
+  const refreshToken = jwt.sign(
+    { id: user._id },
+    process.env.REFRESH_TOKEN_SECRET,
+    { expiresIn: '7d' }
+  );
+
+  user.refreshToken = refreshToken;
+  await user.save();
+
+  res.status(200).json({ message: 'Logged in with 2FA', token, refreshToken });
+};
+
+// --- Disable Two-Factor Authentication ---
+exports.disableTwoFactor = async (req, res) => {
   const user = await User.findById(req.user.id);
   if (!user) {
     return res.status(404).json({ message: 'User not found' });
   }
 
-  const token = req.body.token;
-  const verified = speakeasy.totp.verify({
-    secret: user.twoFactorSecret,
-    encoding: 'base32',
-    token,
-  });
+  user.twoFactorSecret = undefined;
+  user.isTwoFactorEnabled = false;
+  await user.save();
 
-  if (verified) {
-    user.isTwoFactorEnabled = true;
-    await user.save();
-    res.status(200).json({ message: 'Two-factor auth verified and enabled' });
-  } else {
-    res.status(400).json({ message: 'Invalid token' });
-  }
+  res.json({ message: 'Two-factor auth disabled' });
 };
+
 
 // Read User Profile
 exports.getProfile = async (req, res) => {

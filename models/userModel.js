@@ -35,6 +35,7 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+
   failedLoginAttempts: {
     type: Number,
     default: 0,

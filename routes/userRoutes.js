@@ -9,8 +9,11 @@ const {
   changePassword,
   createProfile,
   deleteProfile,
-  setupTwoFactor,
+
   verifyTwoFactor,
+  setupTwoFactor,
+  verifyTwoFactorLogin,
+  disableTwoFactor,
   refreshToken,
   verifyEmail,
   resendVerificationEmail,
@@ -31,21 +34,17 @@ router.post('/reset-password/:resetToken', resetPassword);
 router.post('/change-password', authenticateJWT, changePassword);
 
 // Use middleware for the profile routes
-// router.post('/setupTwoFactor', authenticateJWT, setupTwoFactor);
-// router.post('/verifyTwoFactor', authenticateJWT, verifyTwoFactor);
-// router.post('/refreshToken', refreshToken);
-// router.get(
-//   '/profile',
-//   authenticateJWT,
-//   authorizeRole(['patient', 'doctor', 'admin']),
-//   getProfile
-// );
-// router.put(
-//   '/profile',
-//   authenticateJWT,
-//   authorizeRole(['patient', 'doctor', 'admin']),
-//   updateProfile
-// );
+// Enable 2FA
+router.post('/setup-two-factor', authenticateJWT, setupTwoFactor);
+router.post('/verify-to-enable-two-factor', authenticateJWT, verifyTwoFactor);
+
+// Disable 2FA
+router.post('/disable-two-factor', authenticateJWT, disableTwoFactor);
+
+// Verify 2FA Token during login
+router.post('/verify-two-factor-login', verifyTwoFactorLogin);
+router.post('/refreshToken', refreshToken);
+
 
 router.get('/profile', authenticateJWT, getProfile);
 router.post('/profile', authenticateJWT, createProfile);
