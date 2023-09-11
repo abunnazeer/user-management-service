@@ -62,20 +62,9 @@ router.get(
   }
 );
 router.get('/verify-email/:token', verifyEmail);
-// ... (existing routes)
+
 
 router.post('/resend-verification', resendVerificationEmail);
 
-router.get(
-  '/getUserById/:id',
-  authenticateJWT,
-  authorizeRole(['admin']),
-  async (req, res) => {
-    const user = await User.findById(req.params.id).select('-password');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    res.status(200).json({ user });
-  }
-);
+
 module.exports = router;

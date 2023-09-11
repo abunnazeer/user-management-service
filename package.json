@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start":"nodemon app.js"
+    "start": "nodemon app.js"
   },
   "keywords": [],
   "author": "",
@@ -17,9 +17,12 @@
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.5.0",
+    "morgan": "^1.10.0",
     "nodemailer": "^6.9.5",
     "nodemon": "^3.0.1",
+    "prom-client": "^14.2.0",
     "qrcode": "^1.5.3",
-    "speakeasy": "^2.0.0"
+    "speakeasy": "^2.0.0",
+    "winston": "^3.10.0"
   }
 }
