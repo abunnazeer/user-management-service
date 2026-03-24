@@ -1,84 +1,64 @@
-
 # User Management Service
 
-## Overview
+A microservice for user registration, authentication, profile management, and role-based access control. Built with Node.js, Express, and MongoDB.
 
-The User Management Service is a microservice responsible for all user-related functionalities in the Nodejs Application. This includes user registration, authentication, profile management, and user roles and permissions.
+## Features
 
-## Table of Contents
+- User registration with email and password
+- JWT-based authentication
+- Profile retrieval and update
+- Role-based access control (Admin/User)
+- Password hashing with bcrypt
+- Request logging with Winston
 
-- [Installation](#installation)
-- [Environment Variables](#environment-variables)
-- [Running the Service](#running-the-service)
-- [API Endpoints](#api-endpoints)
-- [Testing](#testing)
-- [Contributing](#contributing)
-- [License](#license)
+## Tech Stack
 
-## Installation
+- **Runtime:** Node.js
+- **Framework:** Express
+- **Database:** MongoDB (Mongoose)
+- **Auth:** JWT + bcrypt
+- **Logging:** Winston
+
+## Setup
 
 1. Clone the repository:
-    ```bash
-    git clone <repository_url>
-    ```
+```bash
+    git clone https://github.com/abunnazeer/user-management-service.git
+    cd user-management-service
+```
 
-2. Navigate to the project directory:
-    ```bash
-    cd UserManagementService
-    ```
-
-3. Install dependencies:
-    ```bash
+2. Install dependencies:
+```bash
     npm install
-    ```
-
-## Environment-Variables
-
-Create a `.env` file in the root directory and add the following:
-
-```
-NODE_ENV=development
-PORT=3000
-DATABASE_URL=<your_database_url>
-SECRET_KEY=<your_secret_key>
 ```
 
-## Running-the-Service
+3. Create a `.env` file:
+```
+    NODE_ENV=development
+    PORT=3000
+    DATABASE_URL=<your_mongodb_url>
+    SECRET_KEY=<your_jwt_secret>
+```
 
-To start the service, run:
-
+4. Run the service:
 ```bash
-npm start
-```
-
-Or to run in development mode with nodemon:
-
-```bash
-npm run dev
+    npm run dev
 ```
 
 ## API Endpoints
 
-- `POST /register`: Register a new user
-- `POST /login`: Authenticate a user
-- `GET /profile`: Get the profile of the authenticated user
-- `PUT /profile`: Update the profile of the authenticated user
-- `DELETE /users/:id`: Delete a user by ID (Admin only)
+| Method | Route | Description | Auth |
+|--------|-------|-------------|------|
+| POST | `/register` | Register a new user | No |
+| POST | `/login` | Authenticate and get token | No |
+| GET | `/profile` | Get current user profile | Yes |
+| PUT | `/profile` | Update current user profile | Yes |
+| DELETE | `/users/:id` | Delete a user | Admin |
 
-For detailed API documentation, please refer to [API_DOCS.md](API_DOCS.md).
+## Author
 
-## Testing
-
-Run the test suite using:
-
-```bash
-npm test
-```
-
-## Contributing
-
-Please read the [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to this project.
+**Abdullahi Ahmad** — [GitHub](https://github.com/abunnazeer)
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE.md](LICENSE.md) file for details.
+MIT
