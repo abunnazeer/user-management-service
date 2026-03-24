@@ -10,43 +10,47 @@ const QRCode = require('qrcode');
 const emailTemplate = require('../util/emailTemplate');
 const url = require('url'); // Import the url library
 
+
+
 // --- User Registration ---
 exports.registerUser = async (req, res) => {
-  const { username, password, role, email } = req.body;
+  const { password, role, email } = req.body;
 
-  // Validate that the password is alphanumeric
+  // Automatically set the username as the part of the email before the '@'
+  const username = email.split("@")[0];
+
+  // Validate that the password is alphanumeric and meets complexity requirements
   const alphanumericRegex = /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z\d@#$%^&+=!-]{8,}$/;
-
   const isPasswordValid = alphanumericRegex.test(password);
+
   if (!isPasswordValid) {
     return res.status(400).json({
       message:
-        'Password must be at least 8 characters long and contain both letters and numbers.',
+        "Password must be at least 8 characters long and contain both letters and numbers.",
     });
   }
 
   // Create new user (password will be hashed in the pre-save hook)
   const user = new User({ username, password, role, email });
 
-  const emailVerificationToken = crypto.randomBytes(32).toString('hex');
+  const emailVerificationToken = crypto.randomBytes(32).toString("hex");
 
   // Dynamically construct the URL for email verification
   const verificationLink = url.format({
     protocol: req.protocol,
-    host: req.get('host'),
-    pathname: '/verify-email',
-    query: {
-      token: emailVerificationToken,
-    },
+    host: process.env.FRONT_END_URL,
+    pathname: `/verify-email/${emailVerificationToken}`,
   });
 
   try {
     const emailContent = `<p>Click <a href="${verificationLink}">here</a> to verify your email.</p>`;
     const fullEmailContent = emailTemplate(emailContent);
+
+    // Send verification email
     await transport.sendMail({
-      from: 'X-HMS Solution<xhms@xzedge.ng>',
+      from: "VS Plus",
       to: user.email,
-      subject: 'Email Verification',
+      subject: "Email Verification",
       html: fullEmailContent,
     });
 
@@ -56,30 +60,41 @@ exports.registerUser = async (req, res) => {
 
     res
       .status(200)
-      .json({ message: 'Registration successful, please verify your email.' });
+      .json({ message: "Registration successful, please verify your email." });
   } catch (error) {
     // If email sending fails, delete the user and send an error response
     await User.findByIdAndDelete(user._id);
-    console.log('Error sending email:', error);
-    res.status(500).json({ message: 'Registration failed, please try again.' });
+    console.error("Error sending email:", error);
+    res.status(500).json({ message: "Registration failed, please try again." });
   }
+};
+// --- Check Email ---
+exports.checkEmail = async (req, res) => {
+  const { email } = req.body;
+
+  // 1. Check if a user exists with the given email
+  const user = await User.findOne({ email });
+  if (user) {
+    return res.status(400).json({ message: "User already exists" });
+  }
+
+  res.status(200).json({ message: "Email is available" });
 };
 
 // --- Email Verification ---
-
 exports.verifyEmail = async (req, res) => {
   const { token } = req.params;
   const user = await User.findOne({ emailVerificationToken: token });
 
   if (!user) {
-    return res.status(400).json({ message: 'Invalid or expired token' });
+    return res.status(400).json({ message: "Invalid or expired token" });
   }
 
   user.emailVerified = true;
   user.emailVerificationToken = undefined;
   await user.save();
 
-  res.status(200).json({ message: 'Email verified successfully' });
+  res.status(200).json({ message: "Email verified successfully" });
 };
 
 // --- User Activity Logging (Helper Function) ---
@@ -96,11 +111,11 @@ exports.resendVerificationEmail = async (req, res) => {
   if (!user || user.emailVerified) {
     return res
       .status(400)
-      .json({ message: 'This email is either invalid or already verified.' });
+      .json({ message: "This email is either invalid or already verified." });
   }
 
   // Generate new email verification token
-  const emailVerificationToken = crypto.randomBytes(32).toString('hex');
+  const emailVerificationToken = crypto.randomBytes(32).toString("hex");
 
   // Store new token in user model
   user.emailVerificationToken = emailVerificationToken;
@@ -109,13 +124,11 @@ exports.resendVerificationEmail = async (req, res) => {
   // Dynamically construct the URL
   const verificationLink = url.format({
     protocol: req.protocol,
-    host: req.get('host'),
-    pathname: '/verify-email',
-    query: {
-      token: emailVerificationToken,
-    },
+    // host: req.get("host"),
+    host: process.env.FRONT_END_URL,
+    pathname: `/verify-email/${emailVerificationToken}`,
   });
-
+  console.log(verificationLink);
   // Create email content using the template
   const emailContent = `<p>Click <a href="${verificationLink}">here</a> to verify your email.</p>`;
   const fullEmailContent = emailTemplate(emailContent);
@@ -123,19 +136,19 @@ exports.resendVerificationEmail = async (req, res) => {
   try {
     // Attempt to resend verification email
     await transport.sendMail({
-      from: 'noreply@yourapp.com',
+      from: "noreply@yourapp.com",
       to: user.email,
-      subject: 'Email Verification',
+      subject: "Email Verification",
       html: fullEmailContent,
     });
 
     res
       .status(200)
-      .json({ message: 'Verification email resent. Please check your inbox.' });
+      .json({ message: "Verification email resent. Please check your inbox." });
   } catch (error) {
-    console.log('Error sending email:', error);
+    console.log("Error sending email:", error);
     res.status(500).json({
-      message: 'Could not resend verification email. Please try again.',
+      message: "Could not resend verification email. Please try again.",
     });
   }
 };
@@ -165,19 +178,19 @@ exports.loginUser = async (req, res) => {
       user.accountLockUntil = Date.now() + 15 * 60 * 1000; // Lock for 15 minutes
       await user.save();
       return res.status(401).json({
-        message: 'Account locked due to too many failed login attempts',
+        message: "Account locked due to too many failed login attempts",
       });
     }
 
     return res
       .status(401)
-      .json({ message: 'Invalid username or email or password' });
+      .json({ message: "Invalid username or email or password" });
   }
 
   if (user && !user.emailVerified) {
     return res
       .status(401)
-      .json({ message: 'Please verify your email before logging in.' });
+      .json({ message: "Please verify your email before logging in." });
   }
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
@@ -190,13 +203,13 @@ exports.loginUser = async (req, res) => {
       user.accountLockUntil = Date.now() + 15 * 60 * 1000; // Lock for 15 minutes
       await user.save();
       return res.status(401).json({
-        message: 'Account locked due to too many failed login attempts',
+        message: "Account locked due to too many failed login attempts",
       });
     }
 
     return res
       .status(401)
-      .json({ message: 'Invalid username or email or password' });
+      .json({ message: "Invalid username or email or password" });
   }
 
   // Reset the failed login attempts and lockout time
@@ -207,16 +220,16 @@ exports.loginUser = async (req, res) => {
     const tempToken = jwt.sign(
       { id: user._id, role: user.role, twoFactor: true },
       process.env.JWT_SECRET,
-      { expiresIn: '10m' }
+      { expiresIn: "10m" }
     );
-    return res.status(200).json({ message: '2FA required', tempToken });
+    return res.status(200).json({ message: "2FA required", tempToken });
   }
   // Create JWT token
   const token = jwt.sign(
     { id: user._id, role: user.role },
     process.env.JWT_SECRET,
     {
-      expiresIn: '1h',
+      expiresIn: "1h",
     }
   );
 
@@ -225,7 +238,7 @@ exports.loginUser = async (req, res) => {
     { id: user._id },
     process.env.REFRESH_TOKEN_SECRET,
     {
-      expiresIn: '7d',
+      expiresIn: "7d",
     }
   );
 
@@ -237,14 +250,12 @@ exports.loginUser = async (req, res) => {
     { id: user._id, role: user.role },
     process.env.JWT_SECRET,
     {
-      expiresIn: '1h',
+      expiresIn: "1h",
     }
   );
 
-  res.status(200).json({ message: 'Logged in', accessToken, refreshToken });
+  res.status(200).json({ message: "Logged in", accessToken, refreshToken });
 };
-
-
 
 // --- Refresh JWT Token ---
 exports.refreshToken = async (req, res) => {
@@ -252,19 +263,19 @@ exports.refreshToken = async (req, res) => {
   const user = await User.findOne({ refreshToken });
 
   if (!user) {
-    return res.status(401).json({ message: 'Invalid refresh token' });
+    return res.status(401).json({ message: "Invalid refresh token" });
   }
 
   jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, decoded) => {
     if (err) {
-      return res.status(401).json({ message: 'Invalid refresh token' });
+      return res.status(401).json({ message: "Invalid refresh token" });
     }
 
     const accessToken = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       {
-        expiresIn: '1h',
+        expiresIn: "1h",
       }
     );
 
@@ -280,11 +291,11 @@ exports.forgotPassword = async (req, res) => {
   if (!user) {
     return res
       .status(404)
-      .json({ message: 'No user found with that email address.' });
+      .json({ message: "No user found with that email address." });
   }
 
   // Generate a reset token
-  const resetToken = crypto.randomBytes(32).toString('hex');
+  const resetToken = crypto.randomBytes(32).toString("hex");
 
   // Save the token and its expiration time in the user's record
   user.passwordResetToken = resetToken;
@@ -293,9 +304,7 @@ exports.forgotPassword = async (req, res) => {
   await user.save();
 
   // Dynamically construct the reset URL
-  const resetURL = `${req.protocol}://${req.get(
-    'host'
-  )}/reset-password/${resetToken}`;
+  const resetURL = `${req.protocol}://${process.env.FRONT_END_URL}/reset-password/${resetToken}`;
 
   // Create the email content using your existing email template
   const emailContent = `<p>You are receiving this because you (or someone else) have requested the reset of the password for your account.</p><p>Please click <a href="${resetURL}">here</a> to complete the process.</p>`;
@@ -303,16 +312,16 @@ exports.forgotPassword = async (req, res) => {
 
   try {
     await transport.sendMail({
-      from: 'X-HMS Solution<xhms@xzedge.ng>',
+      from: "X-HMS Solution<xhms@xzedge.ng>",
       to: user.email,
-      subject: 'Password Reset',
+      subject: "Password Reset",
       html: fullEmailContent,
     });
 
-    res.status(200).json({ message: 'Password reset token sent to email.' });
+    res.status(200).json({ message: "Password reset token sent to email." });
   } catch (error) {
-    console.log('Error sending email:', error);
-    res.status(500).json({ message: 'Error sending reset token email.' });
+    console.log("Error sending email:", error);
+    res.status(500).json({ message: "Error sending reset token email." });
   }
 };
 // --- Reset Password ---
@@ -327,7 +336,7 @@ exports.resetPassword = async (req, res) => {
     passwordResetExpires: { $gt: Date.now() },
   });
   if (!user) {
-    return res.status(400).json({ message: 'Invalid or expired token.' });
+    return res.status(400).json({ message: "Invalid or expired token." });
   }
 
   // Update the password
@@ -337,7 +346,7 @@ exports.resetPassword = async (req, res) => {
 
   await user.save();
 
-  res.status(200).json({ message: 'Password reset successfully.' });
+  res.status(200).json({ message: "Password reset successfully." });
 };
 
 // --- Change User Password ---
@@ -352,30 +361,62 @@ exports.changePassword = async (req, res) => {
     if (!alphanumericRegex.test(newPassword)) {
       return res.status(400).json({
         message:
-          'New password must be at least 8 characters long and contain both letters and numbers.',
+          "New password must be at least 8 characters long and contain both letters and numbers.",
       });
     }
 
     // Fetch the user
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: 'User not found.' });
+      return res.status(404).json({ message: "User not found." });
     }
 
     // Attempt to change the password
     await user.changePassword(oldPassword, newPassword);
 
     // Log the event
-    logUserActivity(userId, 'User changed password');
-    logAuditTrail(userId, 'Changed Password');
+    logUserActivity(userId, "User changed password");
+    logAuditTrail(userId, "Changed Password");
 
     // Respond to the client
-    res.status(200).json({ message: 'Password changed successfully.' });
+    res.status(200).json({ message: "Password changed successfully." });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
+// --- Get All Users ---
+exports.getAllUsers = async (req, res) => {
+  try {
+    // Fetch all users and exclude sensitive fields like password
+    const users = await User.find().select("-password");
+    res.status(200).json({ users });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error fetching users", error: error.message });
+  }
+};
+
+// --- Get User by ID ---
+exports.getUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Fetch the user by ID and exclude the password field
+    const user = await User.findById(id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ user });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error fetching user", error: error.message });
+  }
+};
 
 
 

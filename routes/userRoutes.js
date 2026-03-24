@@ -16,22 +16,32 @@ const {
   disableTwoFactor,
   refreshToken,
   verifyEmail,
+  checkEmail,
   resendVerificationEmail,
-} = require('../controllers/userController');
+  getAllUsers,
+  getUser,
+} = require("../controllers/userController");
 const {
   authenticateJWT,
   authorizeRole,
-} = require('../middleware/authMiddleware');
+} = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-router.post('/register', registerUser);
-router.post('/login', loginUser);
+router.post("/register", registerUser);
+router.post("/login", loginUser);
+router.post("/check-email", checkEmail);
 
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password/:resetToken', resetPassword);
 
 router.post('/change-password', authenticateJWT, changePassword);
+
+
+// New routes for retrieving users
+router.get('/users', authenticateJWT, authorizeRole(['admin']), getAllUsers); // Admin only
+router.get('/users/:id', authenticateJWT, getUser);  // Admin only
+
 
 // Use middleware for the profile routes
 // Enable 2FA
